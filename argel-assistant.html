@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Argel — Assistant Appel</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{--bg:#0f1117;--card:#1a1d27;--card2:#222537;--border:#2e3248;--accent:#4f7dff;--accent2:#ff6b6b;--accent3:#43d4a0;--accent4:#f5a623;--text:#e8eaf2;--muted:#7b80a0;--pill:#252a3d}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+.header{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:700;font-size:15px}.logo span{color:var(--accent)}
+.step-bar{display:flex;gap:4px}
+.step-dot{width:24px;height:4px;border-radius:99px;background:var(--border);transition:background .3s}
+.step-dot.active{background:var(--accent)}.step-dot.done{background:var(--accent3)}
+.screen{display:none;padding:16px 16px 110px;animation:fadeIn .2s ease}.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{padding:7px 13px;border-radius:99px;background:var(--pill);border:1.5px solid var(--border);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.bdr-on{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .15s;text-align:center}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--accent);color:#fff}
+.btn-s{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.btn-ok{background:rgba(67,212,160,.15);color:var(--accent3);border:1px solid rgba(67,212,160,.3)}
+.btn-sm{padding:10px 14px;font-size:13px;border-radius:10px;width:auto;display:inline-block}
+.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.f1{flex:1}
+/* accordion */
+.acc{background:var(--card2);border:1.5px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.acc-h{padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.acc-h:active{background:rgba(79,125,255,.08)}
+.acc-b{display:none;padding:0 14px 12px}
+.acc.open .acc-b{display:block}.acc.open .arr{transform:rotate(180deg)}
+.arr{transition:transform .2s;font-size:12px;color:var(--muted)}
+.qi{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5;cursor:pointer}
+.qi:last-child{border-bottom:none}.qi.used{opacity:.3;text-decoration:line-through}
+/* products */
+.prod{padding:10px 12px;background:var(--card2);border-radius:10px;margin-bottom:8px;border:1px solid var(--border)}
+.prod.cl{cursor:pointer}.prod.cl:active{border-color:var(--accent);background:rgba(79,125,255,.08)}
+.pn{font-size:13px;font-weight:600}.pd{font-size:12px;color:var(--muted);margin-top:2px}.pp{font-size:13px;font-weight:700;color:var(--accent3);margin-top:4px}
+.bdg{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:99px;margin-bottom:4px}
+.bdg-p{background:rgba(255,107,107,.2);color:var(--accent2)}.bdg-n{background:rgba(79,125,255,.2);color:var(--accent)}.bdg-s{background:rgba(245,166,35,.2);color:var(--accent4)}
+/* trame */
+.trame{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.ts{display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;transition:all .2s}
+.ts.cur{border-color:var(--accent);background:rgba(79,125,255,.08)}.ts.done{border-color:var(--accent3);opacity:.6}
+.sn{width:26px;height:26px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:var(--border);color:var(--muted)}
+.ts.cur .sn{background:var(--accent);color:#fff}.ts.done .sn{background:var(--accent3);color:#0f1117}
+.st{font-size:14px;font-weight:600}.sh{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5}
+/* camc */
+.cb{border-left:3px solid var(--accent);padding:10px 12px;background:rgba(79,125,255,.07);border-radius:0 10px 10px 0;margin-bottom:8px}
+.cl2{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.1em}.ct{font-size:13px;margin-top:3px;line-height:1.5}
+/* checklist */
+.chk{display:flex;flex-direction:column;gap:8px}
+.ci{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border-radius:10px;cursor:pointer;border:1.5px solid var(--border);transition:all .15s}
+.ci.done{border-color:var(--accent3)}
+.cb2{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ci.done .cb2{background:var(--accent3);border-color:var(--accent3)}
+.ck{color:#0f1117;font-size:12px;font-weight:700;display:none}.ci.done .ck{display:block}
+.clt{font-size:13px}.ci.done .clt{color:var(--muted);text-decoration:line-through}
+/* obj */
+.og{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ob{padding:11px 10px;background:var(--card2);border:1.5px solid var(--border);border-radius:11px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;text-align:center;transition:all .15s}
+.ob:active{background:rgba(79,125,255,.2);border-color:var(--accent)}
+.al{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;padding:3px 9px;border-radius:99px;margin-bottom:6px}
+.al-a{background:rgba(245,166,35,.2);color:var(--accent4)}.al-i{background:rgba(79,125,255,.2);color:var(--accent)}.al-r{background:rgba(67,212,160,.2);color:var(--accent3)}
+.aq{font-style:italic;color:var(--muted);border-left:2px solid var(--border);padding-left:10px;margin-top:6px;font-size:13px;line-height:1.5}
+/* bottom bar */
+.bb{position:fixed;bottom:0;left:0;right:0;background:rgba(15,17,23,.97);backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:10px 12px;display:flex;gap:8px;z-index:50}
+/* modal */
+.mo{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:flex-end}
+.mo.open{display:flex}
+.m{background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 16px 40px;width:100%;max-height:88dvh;overflow-y:auto;animation:su .25s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mh{width:36px;height:4px;border-radius:99px;background:var(--border);margin:0 auto 16px}
+.mt{font-size:17px;font-weight:700;margin-bottom:14px}
+/* misc */
+.warn{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--accent4);margin-bottom:10px}
+.ok{background:rgba(67,212,160,.1);border:1px solid rgba(67,212,160,.3);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--accent3)}
+.ptip{background:rgba(79,125,255,.08);border:1px solid rgba(79,125,255,.25);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--accent);margin-bottom:12px;line-height:1.6}
+.div{height:1px;background:var(--border);margin:14px 0}
+
+/* ═══ BDR FULLSCREEN ═══ */
+.bdr{display:none;position:fixed;inset:0;z-index:500;background:#0d0f18;flex-direction:column;overflow-y:auto}
+.bdr.open{display:flex}
+.bdr-top{padding:16px 16px 0;flex-shrink:0}
+.bdr-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,107,107,.15);border:1.5px solid var(--accent2);border-radius:99px;padding:6px 14px;margin-bottom:14px}
+.bdr-badge span{font-size:13px;font-weight:700;color:var(--accent2)}
+.bdr-prog{display:flex;gap:4px;margin-bottom:20px}
+.bdr-dot{flex:1;height:6px;border-radius:99px;background:var(--border);transition:background .3s}
+.bdr-dot.act{background:var(--accent2)}.bdr-dot.dn{background:var(--accent3)}
+.bdr-body{flex:1;padding:0 16px 16px}
+.bdr-lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.bdr-say{background:var(--card);border:2px solid rgba(79,125,255,.3);border-radius:16px;padding:18px;font-size:15px;line-height:1.75;margin-bottom:16px;font-weight:500}
+.bdr-say em{color:var(--accent3);font-style:normal;font-weight:700}
+.bdr-q{font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px}
+.bdr-btns{display:flex;flex-direction:column;gap:10px}
+.bdr-btn{padding:18px 16px;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:2px solid;text-align:left;transition:all .15s;display:flex;align-items:center;gap:12px;line-height:1.3}
+.bdr-btn:active{transform:scale(.98)}
+.bdr-btn .bic{font-size:22px;flex-shrink:0}
+.bdr-btn.yes{background:rgba(67,212,160,.1);border-color:var(--accent3);color:var(--accent3)}
+.bdr-btn.no{background:rgba(255,107,107,.1);border-color:var(--accent2);color:var(--accent2)}
+.bdr-btn.meh{background:rgba(79,125,255,.1);border-color:var(--accent);color:var(--accent)}
+.bdr-resp{background:rgba(245,166,35,.08);border:2px solid rgba(245,166,35,.3);border-radius:14px;padding:16px;font-size:14px;line-height:1.75;color:var(--text);margin-bottom:16px}
+.bdr-resp strong{color:var(--accent3)}
+.bdr-resp .tip{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent4);margin-bottom:8px}
+.bdr-foot{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Argel <span>Assist</span></div>
+  <div class="step-bar" id="stepBar">
+    <div class="step-dot" id="dot0"></div>
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 0 : PROFIL ══ -->
+<div class="screen active" id="s0">
+  <h2>Nouveau client 👤</h2>
+  <p class="sub">Configure le profil avant de décrocher</p>
+
+  <div class="lbl">Type de client</div>
+  <div class="chips mb16" id="typeChips">
+    <div class="chip on" data-v="nouveau" onclick="pick(this,'typeChips','type')">🌱 Nouveau</div>
+    <div class="chip" data-v="fidelisation" onclick="pick(this,'typeChips','type')">📈 En fidélisation</div>
+    <div class="chip" data-v="reconquerir" onclick="pick(this,'typeChips','type')">🔄 À reconquérir</div>
+  </div>
+
+  <div class="lbl">Dernière commande — catégories</div>
+  <div class="chips mb16" id="catChips">
+    <div class="chip" data-v="poisson" onclick="togCat(this)">🐟 Poisson</div>
+    <div class="chip" data-v="viande" onclick="togCat(this)">🥩 Viande</div>
+    <div class="chip" data-v="volaille" onclick="togCat(this)">🍗 Volaille</div>
+    <div class="chip" data-v="legumes" onclick="togCat(this)">🥦 Légumes</div>
+    <div class="chip" data-v="plats" onclick="togCat(this)">🍝 Plats cuisinés</div>
+    <div class="chip" data-v="glaces" onclick="togCat(this)">🍦 Glaces / desserts</div>
+    <div class="chip" data-v="pizza" onclick="togCat(this)">🍕 Pizza</div>
+    <div class="chip" data-v="epicerie" onclick="togCat(this)">🛒 Épicerie / boissons</div>
+    <div class="chip" data-v="aperitif" onclick="togCat(this)">🥂 Apéritif / entrées</div>
+    <div class="chip" data-v="rien" onclick="setBDR(this)">🚨 BDR / 1ère commande</div>
+  </div>
+
+  <div class="lbl">Persona probable</div>
+  <div class="chips mb12" id="perChips">
+    <div class="chip" data-v="therese" onclick="pick(this,'perChips','persona')">🧓 Thérèse 70+</div>
+    <div class="chip" data-v="brigitte" onclick="pick(this,'perChips','persona')">👩 Brigitte 63-70</div>
+    <div class="chip" data-v="sophie" onclick="pick(this,'perChips','persona')">💼 Sophie 50+</div>
+    <div class="chip on" data-v="inconnu" onclick="pick(this,'perChips','persona')">❓ Inconnu</div>
+  </div>
+
+  <div class="lbl">Infos utiles (optionnel)</div>
+  <div class="card mb16"><div class="chips" style="margin-bottom:0">
+    <div class="chip" onclick="this.classList.toggle('on')">👫 Couple</div>
+    <div class="chip" onclick="this.classList.toggle('on')">👤 Vit seule</div>
+    <div class="chip" onclick="this.classList.toggle('on')">🐕 Animal</div>
+    <div class="chip" onclick="this.classList.toggle('on')">🌱 Potager</div>
+    <div class="chip" onclick="this.classList.toggle('on')">🏡 Résidence 2e</div>
+    <div class="chip" onclick="this.classList.toggle('on')">👶 Petits-enfants</div>
+    <div class="chip" onclick="this.classList.toggle('on')">⚕️ Régime santé</div>
+  </div></div>
+
+  <button class="btn btn-p" onclick="startCall()">📞 Démarrer l'appel</button>
+</div>
+
+<!-- ══ SCREEN 1 : APPEL ══ -->
+<div class="screen" id="s1">
+  <h2>Appel en cours 📞</h2>
+  <p class="sub" id="recap">—</p>
+  <div id="ptip"></div>
+
+  <div class="lbl">Trame</div>
+  <div class="trame">
+    <div class="ts" id="ts0"><div class="sn">1</div><div><div class="st">Accroche & présentation</div><div class="sh">Bonjour + prénom + Maison Argel, spécialiste surgelés livrés à domicile</div></div></div>
+    <div class="ts" id="ts1"><div class="sn">2</div><div><div class="st">Découverte & réactivité client</div><div class="sh">Question ouverte · Écouter · Identifier les besoins</div></div></div>
+    <div class="ts" id="ts2"><div class="sn">3</div><div><div class="st">Propositions produits</div><div class="sh">Habituels + nouveauté + promos + CAMC</div></div></div>
+    <div class="ts" id="ts3"><div class="sn">4</div><div><div class="st">Clôture</div><div class="sh">Récap · Paiement · Livraison · Prochain appel</div></div></div>
+  </div>
+
+  <div id="tc0">
+    <div class="lbl">Questions d'accroche ▾</div>
+    <div id="accDiv"></div>
+  </div>
+  <div id="tc1" style="display:none">
+    <div class="lbl">Questions ouvertes par thème</div>
+    <div id="qDiv"></div>
+  </div>
+  <div id="tc2" style="display:none">
+    <div class="lbl">Produits suggérés — clique pour le CAMC</div>
+    <div id="prodDiv"></div>
+    <button class="btn btn-s mb8" onclick="goS(4)">📋 Catalogue complet + CAMC</button>
+  </div>
+  <div id="tc3" style="display:none">
+    <div class="warn">⚠️ Ne jamais donner la date de livraison spontanément · Chèque à partir de 30 € → différé 20j après livraison</div>
+    <div class="chk">
+      <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Récapitulatif articles + quantités</div></div>
+      <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Prix total annoncé</div></div>
+      <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Date & heure de livraison confirmée</div></div>
+      <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Moyen de paiement vérifié</div></div>
+      <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Produit non commandé noté pour prochain appel</div></div>
+      <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Fiche client mise à jour</div></div>
+    </div>
+  </div>
+
+  <div class="div"></div>
+  <div class="lbl">Objection ? 🛡️</div>
+  <div class="og mb12">
+    <button class="ob" onclick="obj('cher')">C'est trop cher</button>
+    <button class="ob" onclick="obj('rien')">Besoin de rien</button>
+    <button class="ob" onclick="obj('frais')">Produits frais</button>
+    <button class="ob" onclick="obj('seule')">Seule / on est 2</button>
+    <button class="ob" onclick="obj('boucher')">J'ai mon boucher</button>
+    <button class="ob" onclick="obj('jardin')">J'ai mon jardin</button>
+    <button class="ob" onclick="obj('fournisseur')">Autre fournisseur</button>
+    <button class="ob" onclick="obj('absent')">Je pars / absent</button>
+    <button class="ob" onclick="obj('congelateur')">Congélo plein</button>
+    <button class="ob" onclick="obj('complique')">C'est compliqué</button>
+    <button class="ob" onclick="obj('surgle')">Pas les surgelés</button>
+    <button class="ob" onclick="obj('catalogue')">Pas vu le catalogue</button>
+  </div>
+
+  <div class="bb">
+    <button class="btn btn-s f1 btn-sm" onclick="prevS()">← Retour</button>
+    <button class="btn btn-p f1 btn-sm" onclick="nextS()" id="nxtBtn">Étape suivante →</button>
+    <button class="btn btn-sm" onclick="openM('mDir')" style="width:44px;padding:10px 0;font-size:18px;background:rgba(245,166,35,.2);border:1.5px solid rgba(245,166,35,.4);color:var(--accent4);border-radius:10px">🚨</button>
+    <button class="btn btn-ok btn-sm" onclick="goS(3)" style="width:44px;padding:10px 0;font-size:18px">✅</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3 : FIN ══ -->
+<div class="screen" id="s3">
+  <h2>Fin d'appel 🏁</h2>
+  <p class="sub">Bilan & points incontournables</p>
+  <div class="ok mb12">✅ Super, c'est bouclé !</div>
+  <div class="lbl">Points incontournables</div>
+  <div class="chk mb16">
+    <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Au moins une question ouverte posée</div></div>
+    <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Produit complémentaire proposé</div></div>
+    <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Promo du mois proposée</div></div>
+    <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">PDLM proposé (pilier Argel)</div></div>
+    <div class="ci" onclick="ck(this)"><div class="cb2"><span class="ck">✓</span></div><div class="clt">Parrainage mentionné si pertinent</div></div>
+  </div>
+  <div class="lbl">Prise de congé</div>
+  <div class="card mb16">
+    <div style="font-size:13px;line-height:1.6;margin-bottom:8px">« C'est un plaisir d'échanger avec vous, j'ai encore beaucoup de clients qui attendent mon appel ! »</div>
+    <div style="font-size:13px;line-height:1.6">« Je vous laisse, on se retrouve au prochain appel — bonne journée ! »</div>
+  </div>
+  <button class="btn btn-p mb8" onclick="reset()">🔁 Nouvel appel</button>
+  <button class="btn btn-s" onclick="goS(1)">← Retour appel</button>
+</div>
+
+<!-- ══ SCREEN 4 : CATALOGUE ══ -->
+<div class="screen" id="s4">
+  <h2>Catalogue avril 📋</h2>
+  <p class="sub">Tous les produits — clique pour le CAMC</p>
+  <div id="catDiv"></div>
+  <div class="bb">
+    <button class="btn btn-s f1 btn-sm" onclick="goS(1)">← Retour appel</button>
+  </div>
+</div>
+
+<!-- ══ BDR FULLSCREEN ══ -->
+<div class="bdr" id="bdrPanel">
+  <div class="bdr-top">
+    <div class="bdr-badge"><span>🚨</span><span>MODE BDR — Besoin de rien</span></div>
+    <div class="bdr-prog" id="bdrProg">
+      <div class="bdr-dot act" id="bd0"></div>
+      <div class="bdr-dot" id="bd1"></div>
+      <div class="bdr-dot" id="bd2"></div>
+      <div class="bdr-dot" id="bd3"></div>
+    </div>
+  </div>
+  <div class="bdr-body" id="bdrBody"></div>
+  <div class="bdr-foot">
+    <button class="btn btn-s" onclick="closeBDR()">← Sortir du mode BDR</button>
+  </div>
+</div>
+
+<!-- ══ MODAL OBJECTION ══ -->
+<div class="mo" id="mObj" onclick="if(event.target===this)closeM('mObj')">
+  <div class="m"><div class="mh"></div><div class="mt" id="mObjT">Objection</div><div id="mObjC"></div>
+  <button class="btn btn-s" style="margin-top:16px" onclick="closeM('mObj')">Fermer</button></div>
+</div>
+
+<!-- ══ MODAL DIRECTIVITE ══ -->
+<div class="mo" id="mDir" onclick="if(event.target===this)closeM('mDir')">
+  <div class="m"><div class="mh"></div><div class="mt">🚨 Directivité — Reprends le contrôle</div>
+    <div class="card mb8" style="border-color:rgba(245,166,35,.4);background:rgba(245,166,35,.06)">
+      <div style="font-size:14px;font-weight:600;color:var(--accent4);margin-bottom:8px">🎯 Recentrer sur les repas</div>
+      <div class="aq">« C'est touchant ce que vous me dites… et si on regardait ce qui pourrait vous faire plaisir côté repas ? »</div>
+      <div class="aq">« Vous m'avez donné envie de vous faire une belle proposition ! Viande ou poisson en ce moment ? »</div>
+      <div class="aq">« Et justement, pour vos repas de cette semaine… »</div>
+    </div>
+    <div class="card mb8" style="border-color:rgba(79,125,255,.4);background:rgba(79,125,255,.06)">
+      <div style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:8px">⏱️ Gérer le temps</div>
+      <div class="aq">« C'est un plaisir d'échanger avec vous — j'ai encore beaucoup de clients qui attendent. »</div>
+      <div class="aq">« Je vais aller droit au but — j'ai quelque chose qui pourrait bien vous convenir. »</div>
+    </div>
+    <div class="card mb8" style="border-color:rgba(67,212,160,.4);background:rgba(67,212,160,.06)">
+      <div style="font-size:14px;font-weight:600;color:var(--accent3);margin-bottom:8px">💬 Reprendre après digression</div>
+      <div class="aq">« Tout à l'heure vous me disiez que vous aimiez [X] — justement, j'ai quelque chose pour vous… »</div>
+      <div class="aq">« Revenons à ce qui vous fait plaisir : vous êtes combien à table cette semaine ? »</div>
+    </div>
+    <div class="card mb8" style="border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.06)">
+      <div style="font-size:14px;font-weight:600;color:var(--accent2);margin-bottom:8px">🔴 Client qui monopolise</div>
+      <div class="aq">« Je vous écoute avec plaisir, et je vais devoir vous laisser pour mes autres clients. »</div>
+      <div class="aq">« Je note ça pour la prochaine fois — et cette semaine, qu'est-ce qu'on vous met de côté ? »</div>
+    </div>
+    <div class="warn" style="color:var(--text)">⚡ Tu donnes l'<strong>impression</strong> que le client a le contrôle… mais c'est <strong>toi</strong> qui mènes. Sois sûre de toi.</div>
+    <button class="btn btn-s" style="margin-top:12px" onclick="closeM('mDir')">Fermer</button>
+  </div>
+</div>
+
+<!-- ══ MODAL CAMC ══ -->
+<div class="mo" id="mCAMC" onclick="if(event.target===this)closeM('mCAMC')">
+  <div class="m"><div class="mh"></div><div class="mt" id="mCAMCT">CAMC</div><div id="mCAMCC"></div>
+  <button class="btn btn-s" style="margin-top:16px" onclick="closeM('mCAMC')">Fermer</button></div>
+</div>
+
+<script>
+// ══ STATE ══
+const S = { type:'nouveau', cats:[], persona:'inconnu', step:0, screen:0, bdr:false };
+
+// ══ CHIPS ══
+function pick(el, gid, key) {
+  document.querySelectorAll('#'+gid+' .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  if(key==='type') S.type=el.dataset.v;
+  if(key==='persona') S.persona=el.dataset.v;
+}
+function togCat(el) {
+  // clear BDR
+  document.querySelectorAll('#catChips [data-v="rien"]').forEach(c=>{c.classList.remove('on','bdr-on');});
+  S.cats=S.cats.filter(x=>x!=='rien'); S.bdr=false;
+  el.classList.toggle('on');
+  const v=el.dataset.v;
+  S.cats.includes(v)?S.cats=S.cats.filter(x=>x!==v):S.cats.push(v);
+}
+function setBDR(el) {
+  document.querySelectorAll('#catChips .chip').forEach(c=>{c.classList.remove('on','bdr-on');});
+  el.classList.add('bdr-on');
+  S.cats=['rien']; S.bdr=true;
+}
+function ck(el){ el.classList.toggle('done'); }
+
+// ══ SCREENS ══
+function goS(n) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const sc=document.getElementById('s'+n);
+  if(sc) sc.classList.add('active');
+  S.screen=n; updateDots();
+  if(n===4) buildCat();
+  window.scrollTo(0,0);
+}
+function updateDots(){
+  const v=Math.min(S.screen,3);
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('dot'+i);
+    if(!d) continue;
+    d.classList.remove('active','done');
+    if(i<v) d.classList.add('done');
+    if(i===v) d.classList.add('active');
+  }
+}
+
+// ══ MODALS ══
+function openM(id){ document.getElementById(id).classList.add('open'); }
+function closeM(id){ document.getElementById(id).classList.remove('open'); }
+
+// ══ START CALL ══
+function startCall(){
+  const tl={nouveau:'🌱 Nouveau',fidelisation:'📈 En fidélisation',reconquerir:'🔄 À reconquérir'}[S.type]||'';
+  const pl={therese:'Thérèse 70+',brigitte:'Brigitte 63-70',sophie:'Sophie 50+',inconnu:'Profil inconnu'}[S.persona]||'';
+  document.getElementById('recap').textContent=tl+' · '+pl;
+  buildPtip(); buildAcc(); buildQ(); buildProd();
+  S.step=0; updateTrame(); goS(1);
+  if(S.bdr){ setTimeout(()=>openBDR(),50); }
+}
+
+// ══ PERSONA TIP ══
+function buildPtip(){
+  const t={
+    therese:'🧓 <strong>Thérèse</strong> — Nostalgique, gourmande, sensible. Prends le temps. Parle petits-enfants, recettes, saison. Favoris : produits bruts, plats individuels, gourmandises.',
+    brigitte:'👩 <strong>Brigitte</strong> — Dynamique, généreuse, curieuse. Sorties, invitations, nouvelles recettes, cuisine de saison.',
+    sophie:'💼 <strong>Sophie</strong> — Active, stressée, connectée. Rapide, pratique, bio. Repas express, apéros, famille.',
+    inconnu:'',
+  }[S.persona]||'';
+  document.getElementById('ptip').innerHTML=t?`<div class="ptip">${t}</div>`:'';
+}
+
+// ══ ACCROCHE ══
+const ACC={
+  '🌤️ Météo & saison':{
+    therese:['Il fait beau chez vous en ce moment ?','Avec le printemps qui arrive, vous recommencez à manger plus léger ?','La météo vous donne envie de changer vos habitudes culinaires ?','Vous êtes plutôt mijotés en hiver ou vous passez aux grillades maintenant ?'],
+    brigitte:['Avec le beau temps qui revient, vous reprenez la plancha ou le barbecue ?','Le soleil vous donne envie de nouvelles saveurs ?','Vous pensez déjà à vos repas en terrasse ?'],
+    sophie:['Il fait beau ? C\'est parfait pour un barbecue express en semaine !','Avec ce soleil, vous avez envie de choses légères ou toujours des bons petits plats ?'],
+    inconnu:['Il fait beau chez vous en ce moment ?','La saison change vos envies de cuisine ?','Vous cuisinez plutôt léger ou vous gardez les plats chauds ?'],
+  },
+  '👨‍👩‍👧 Famille & événements':{
+    therese:['Vous avez des petits-enfants qui passent de temps en temps ?','Vous avez des anniversaires ou des événements en famille ce mois-ci ?','Vous cuisinez plutôt pour vous seule ou vous attendez de la famille ?'],
+    brigitte:['Vous avez des invitations ou des repas de famille prévus ?','Vos enfants ou petits-enfants passent ce mois-ci ?','Vous avez des sorties ou des week-ends prévus en avril ?'],
+    sophie:['Vous avez des repas entre amis ou un apéro de prévus ?','Des événements en famille ce mois-ci ?'],
+    inconnu:['Vous avez des événements familiaux ce mois-ci ?','Vous recevez de la famille prochainement ?'],
+  },
+  '🍽️ Habitudes & repas':{
+    therese:['Qu\'est-ce que vous aimez cuisiner en ce moment ?','Vous êtes plutôt viande, poisson ou un peu des deux ?','Vous avez des petits plaisirs gourmands toujours au congélo ?','Vous aimez cuisiner vous-même ou plutôt tout prêt ?'],
+    brigitte:['Vous aimez tester de nouvelles recettes ou vous restez sur vos classiques ?','Vous cherchez des choses rapides à préparer ou plutôt gourmandes ?','Vous aimez les cuisines du monde — méditerranéen, asiatique ?'],
+    sophie:['Le soir vous cuisinez ou vous prenez plutôt des choses toutes prêtes ?','Viande ou poisson, c\'est quoi la préférence à la maison ?'],
+    inconnu:['Vous êtes plutôt viande ou poisson ?','Vous êtes combien à table en général ?','Vous cuisinez vous-même ou plutôt des plats tout prêts ?'],
+  },
+  '🐾 Animal de compagnie':{
+    therese:['Vous avez un chat ou un chien à la maison ?','Il mange bien votre compagnon ? On a une belle gamme pour eux !'],
+    brigitte:['Vous avez un animal à la maison ? On peut s\'occuper de lui aussi !'],
+    sophie:['Un chat ou un chien ? On a des produits pour eux aussi !'],
+    inconnu:['Vous avez un animal de compagnie ? On a des produits pour eux.'],
+  },
+};
+function buildAcc(){
+  const p=S.persona==='inconnu'?'inconnu':S.persona;
+  let h='';
+  for(const[th,d] of Object.entries(ACC)){
+    const qs=d[p]||d.inconnu;
+    const id='a'+Math.random().toString(36).slice(2,6);
+    h+=`<div class="acc" id="${id}"><div class="acc-h" onclick="tog('${id}')"><span>${th}</span><span class="arr">▼</span></div><div class="acc-b">${qs.map(q=>`<div class="qi" onclick="this.classList.toggle('used')">❓ ${q}</div>`).join('')}</div></div>`;
+  }
+  document.getElementById('accDiv').innerHTML=h;
+}
+function tog(id){ document.getElementById(id).classList.toggle('open'); }
+
+// ══ QUESTIONS STEP 1 ══
+function buildQ(){
+  const D={
+    therese:[
+      {t:'🌸 Saison & quotidien',q:['Avec l\'arrivée du printemps, vous recommencez à manger plus léger ?','Il fait beau chez vous ?','Vous êtes plutôt mijotés ou vous passez aux grillades ?']},
+      {t:'👨‍👩‍👧 Famille & entourage',q:['Vous avez des petits-enfants qui passent de temps en temps ?','Vous cuisinez plutôt pour vous seule ou vous attendez de la famille ?','Vous avez des anniversaires ce mois-ci ?']},
+      {t:'🍽️ Repas & habitudes',q:['Qu\'est-ce que vous aimez cuisiner en ce moment ?','Vous êtes plutôt viande, poisson ou un peu des deux ?','Vous aimez les plats à cuisiner vous-même ou plutôt tout prêts ?','Vous avez des petits plaisirs gourmands toujours au congélo ?']},
+      {t:'⚕️ Santé & régime',q:['Vous faites attention à votre alimentation en ce moment ?','Vous avez des aliments à éviter, un régime particulier ?','Vous préférez les plats légers ou vous vous faites plaisir ?']},
+    ],
+    brigitte:[
+      {t:'🌸 Saison & agenda',q:['Avec le beau temps qui arrive, vous reprenez les barbecues et la plancha ?','Vous avez des sorties ou des week-ends prévus en avril ?','Vous partez en voyage prochainement ?']},
+      {t:'👨‍👩‍👧 Famille & invitations',q:['Vous recevez souvent de la famille ou des amis en ce moment ?','Vos enfants ou petits-enfants passent ce mois-ci ?','Vous avez des repas ou apéros entre amis de prévus ?']},
+      {t:'🍽️ Cuisine & recettes',q:['Vous aimez tester de nouvelles recettes ou vous préférez vos classiques ?','Vous cherchez des choses rapides à préparer ou plutôt gourmandes ?','Vous aimez les cuisines du monde — méditerranéen, asiatique ?','Vous avez un robot de cuisine ?']},
+      {t:'🥗 Goûts & préférences',q:['Vous êtes plutôt viande ou poisson ?','Vous faites attention au bio ou aux labels ?']},
+    ],
+    sophie:[
+      {t:'⏱️ Praticité',q:['Le soir vous cuisinez ou vous prenez plutôt des choses toutes prêtes ?','Vous cherchez des repas rapides à préparer en semaine ?']},
+      {t:'👨‍👩‍👧 Famille',q:['Vous avez des enfants à la maison ? Qu\'est-ce qu\'ils aiment manger ?','Vous avez des repas entre amis ou des apéros de prévus ?']},
+      {t:'🥗 Santé & bio',q:['Vous faites attention au bio ou aux produits sans additifs ?','Vous cherchez des choses plutôt légères ou gourmandes ?']},
+    ],
+    inconnu:[
+      {t:'🌸 Saison',q:['Avec l\'arrivée du printemps, qu\'est-ce que vous aimez cuisiner ?','Vous recommencez à manger plus léger ou vous restez sur les plats chauds ?']},
+      {t:'🍽️ Repas & habitudes',q:['Vous êtes plutôt viande ou poisson ?','Vous êtes combien à table en général ?','Vous cuisinez vous-même ou plutôt des plats tout prêts ?']},
+      {t:'👨‍👩‍👧 Famille',q:['Vous recevez souvent de la famille ?','Vous avez des occasions spéciales ce mois-ci ?']},
+    ],
+  };
+  const themes=D[S.persona]||D.inconnu;
+  let h='';
+  for(const t of themes){
+    const id='q'+Math.random().toString(36).slice(2,6);
+    h+=`<div class="acc" id="${id}"><div class="acc-h" onclick="tog('${id}')"><span>${t.t}</span><span class="arr">▼</span></div><div class="acc-b">${t.q.map(q=>`<div class="qi" onclick="this.classList.toggle('used')">❓ ${q}</div>`).join('')}</div></div>`;
+  }
+  document.getElementById('qDiv').innerHTML=h;
+}
+
+// ══ CATALOGUE COMPLET ══
+function getCat(){
+  return [
+    // ── ENTRÉES & APÉRITIFS ──
+    {sec:'🥂 Entrées & Apéritifs',items:[
+      {code:'0590',promo:false,n:'20 Canapés traiteur',d:'135 g · 4 canapés foie gras, 4 noix de jambon, 4 blinis fromage de chèvre, 4 canapés tomate, 4 mini blinis saumon',p:'19,95 €',u:'147,78 €/kg'},
+      {code:'0540',promo:false,n:'8 Mini bûchettes de saumon fumé',d:'160 g · saumon fumé, mascarpone, fromage frais, jus de citron, ciboulette',p:'9,95 €',u:'62,19 €/kg'},
+      {code:'0580',promo:false,n:'Pain surprise campagnard',d:'890 g · 40 sandwichs 5 variétés · Emmental, Jambon cru, Bacon, Saumon fumé',p:'34,95 €',u:'39,27 €/kg'},
+      {code:'0323',promo:false,n:'30 Gougères au fromage',d:'225 g · œuf entier, farine de blé, Comté AOP',p:'9,95 €',u:'44,22 €/kg'},
+      {code:'5042',promo:false,n:'Calamars gigas à la romaine',d:'500 g · env. 30 pièces · anneaux d\'encornet géant, pâte à beignet',p:'4,95 €',u:'9,90 €/kg'},
+      {code:'0388',promo:true,n:'Trio de mini saucisses',d:'240 g · feuilletés saucisse 3 variétés : moutarde, BBQ, emmental',p:'6,85 €',u:'28,54 €/kg'},
+      {code:'0131',promo:false,n:'Cubes de saumon panés',d:'500 g · env. 50 pièces · préfrits · sans conservateur',p:'13,40 €',u:'26,80 €/kg'},
+      {code:'1035',promo:false,n:'2 Tartares de St-Jacques et mangue',d:'140 g · St-Jacques, mangue, jus de citron vert · réfrigérateur 4h',p:'7,95 €',u:'56,79 €/kg'},
+      {code:'0565',promo:false,n:'2 Pissaladières niçoises',d:'190 g · oignons, anchois salés, olive noire, herbes de Provence',p:'4,80 €',u:'25,26 €/kg'},
+      {code:'0511',promo:true,n:'8 Quiches lorraines individuelles',d:'800 g · fromage frais, poitrine fumée, jambon fumé sup., emmental, œufs frais',p:'10,95 €',u:'13,69 €/kg'},
+      {code:'0526',promo:false,n:'Quiche lorraine 3/4 parts',d:'400 g · pâte brisée, lait, jambon sup., lardons fumés, emmental',p:'5,90 €',u:'14,75 €/kg'},
+      {code:'0344',promo:true,n:'4 Paniers fromage de chèvre affiné',d:'440 g · pâte feuilletée, chèvre affiné, chèvre fondu · sans arôme',p:'8,50 €',u:'19,32 €/kg'},
+      {code:'0343',promo:false,n:'8 Paniers jambon-emmental',d:'880 g · pâte feuilletée aux œufs frais, jambon, emmental, crème, muscade',p:'11,95 €',u:'13,58 €/kg'},
+      {code:'0600',promo:true,n:'Flammekueche NOUVEAU',d:'260 g · crème fraîche, farine de blé, lardons fumés, oignons, huile de tournesol',p:'5,65 €',u:'21,73 €/kg'},
+      {code:'0481',promo:true,n:'4 Croque-monsieur gratinés',d:'440 g · pain de mie, jambon, sauce béchamel, emmental',p:'9,40 €',u:'21,36 €/kg'},
+    ]},
+    // ── PIZZAS ──
+    {sec:'🍕 Pizzas — cuites au feu de bois, Drôme',items:[
+      {code:'0310',promo:false,n:'Pizza au chorizo',d:'460 g · purée de tomate, Maasdam râpé, chorizo, poivrons, olives noires, épices',p:'5,95 €',u:'12,93 €/kg'},
+      {code:'0308',promo:false,n:'Pizza crémière lardons oignons',d:'440 g · crème, fromage râpé, lardons fumés, oignons grillés, champignons de Paris',p:'5,95 €',u:'13,52 €/kg'},
+      {code:'0307',promo:true,n:'Pizza bolognaise',d:'450 g · sauce tomate cuisinée, bœuf France, Maasdam, olives noires',p:'7,15 €',u:'15,89 €/kg'},
+      {code:'0324',promo:false,n:'Pizza jambon fromage',d:'450 g · purée de tomates, jambon, Maasdam, olives',p:'5,95 €',u:'13,22 €/kg'},
+      {code:'0306',promo:true,n:'Pizza tartiflette',d:'500 g · crème, pommes de terre, reblochon, fromage râpé, lardons fumés',p:'6,25 €',u:'12,50 €/kg'},
+      {code:'0318',promo:false,n:'Pizza chèvre',d:'440 g · purée de tomates, fromage de chèvre, Maasdam, olives noires, épices',p:'6,95 €',u:'15,80 €/kg'},
+      {code:'0321',promo:false,n:'Pizza mozzarella pesto',d:'430 g · purée tomate, emmental râpé, mozzarella, pesto vert, préparation tomate',p:'6,95 €',u:'16,16 €/kg'},
+      {code:'0302',promo:false,n:'Pizza royale',d:'480 g · purée tomate, jambon, champignons, Maasdam, olives',p:'5,95 €',u:'12,40 €/kg'},
+      {code:'0309',promo:false,n:'Pizza au saumon fumé',d:'470 g · purée tomate, Maasdam, saumon fumé, crème',p:'6,95 €',u:'14,79 €/kg'},
+      {code:'0322',promo:false,n:'Pizza 6 légumes grillés saveur provençale',d:'430 g · tomate, emmental, mozzarella, artichaut, courgette, poivrons, tomate cerise',p:'5,95 €',u:'13,84 €/kg'},
+    ]},
+    // ── PLATS CUISINÉS 1 PART ──
+    {sec:'🍝 Plats cuisinés 1 part',items:[
+      {code:'0410',promo:true,n:'Tagliatelles au saumon',d:'300 g · 1 part · Calvados · sauce crémeuse et dés de saumon',p:'5,40 €',u:'18,00 €/kg'},
+      {code:'0461',promo:true,n:'Pâtes aux légumes du soleil et chorizo',d:'300 g · 1 part · Finistère · chorizo et crème fraîche origine France',p:'4,85 €',u:'16,17 €/kg'},
+      {code:'0417',promo:true,n:'Spaghetti carbonara',d:'300 g · 1 part · Finistère · mélange gourmand crème fraîche et lardons France',p:'4,50 €',u:'15,00 €/kg'},
+      {code:'0416',promo:true,n:'Spaghetti à la bolognaise',d:'300 g · 1 part · Finistère · viande bovine France',p:'4,05 €',u:'13,50 €/kg'},
+      {code:'0425',promo:false,n:'Lasagnes épinards chèvre',d:'360 g · 1 part · pâtes fraîches · Ille-et-Vilaine',p:'5,45 €',u:'15,14 €/kg'},
+      {code:'0421',promo:false,n:'Lasagnes à la bolognaise',d:'325 g · 1 part · pâtes fraîches, viande bovine française',p:'4,40 €',u:'13,54 €/kg'},
+      {code:'0474',promo:false,n:'Filet de poulet à la provençale et riz de Camargue',d:'300 g · 1 part · Var · poulet France et riz de Camargue',p:'7,30 €',u:'24,33 €/kg'},
+      {code:'0408',promo:true,n:'Moussaka',d:'300 g · 1 part · Finistère · gratin d\'aubergines, tomate, viande bovine France et oignon',p:'4,50 €',u:'15,00 €/kg'},
+      {code:'0478',promo:true,n:'Moules poulette et riz de Camargue',d:'300 g · 1 part · Var · riz de Camargue IGP',p:'7,75 €',u:'25,83 €/kg'},
+      {code:'0476',promo:true,n:'Tajine de poulet aux abricots',d:'300 g · 1 part · Var · poulet France et semoule à l\'huile d\'olive',p:'7,30 €',u:'24,33 €/kg'},
+      {code:'0499',promo:false,n:'Couscous',d:'300 g · 1 part · Var · poulet France et merguez',p:'6,95 €',u:'23,17 €/kg'},
+      {code:'0474',promo:false,n:'Filet de poulet sauce citron et riz de Camargue',d:'300 g · 1 part · Var',p:'7,30 €',u:'24,33 €/kg'},
+      {code:'0452',promo:false,n:'Saumon sauce citron et purée de brocolis',d:'350 g · 1 part · Calvados · purée de brocolis, filet de saumon, crème',p:'8,40 €',u:'24,00 €/kg'},
+    ]},
+    // ── PLATS À PARTAGER ──
+    {sec:'🥘 Plats cuisinés à partager',items:[
+      {code:'5010',promo:false,n:'Paëlla royale',d:'1,060 kg · 3/4 parts · Landes · pilons de poulet, riz, moules, calamars, crevettes, chorizo',p:'19,95 €',u:'18,82 €/kg'},
+      {code:'5011',promo:false,n:'Paëlla de la mer',d:'900 g · 2 parts · Landes · poissons blancs, riz, moules, calamars, crevettes, chorizo',p:'16,95 €',u:'18,83 €/kg'},
+      {code:'3052',promo:true,n:'Risotto de fruits de mer',d:'900 g · 3/4 parts · Finistère · riz, carottes, colin d\'Alaska, champignons, crevettes, moules',p:'12,50 €',u:'13,89 €/kg'},
+      {code:'5119',promo:false,n:'6 Tomates farcies cuites',d:'1 kg · 6 parts · Seine-Maritime · farce viandes bœuf, porc et volaille',p:'16,95 €',u:'16,95 €/kg'},
+      {code:'3048',promo:true,n:'Poêlée tagliatelles et gambas',d:'600 g · 2 parts · Calvados · tagliatelles, queues de gambas, tomates cerises, courgettes',p:'11,95 €',u:'19,92 €/kg'},
+      {code:'5030',promo:false,n:'Couscous poulet merguez',d:'900 g · 2 parts · Morbihan · semoule, légumes, bouillon, 2 pilons de poulet, 2 merguez',p:'17,50 €',u:'21,61 €/kg'},
+      {code:'5508',promo:false,n:'Cannelloni à la bolognaise',d:'1 kg · 4 parts · Calvados · viande bovine française, semoule de blé dur',p:'11,95 €',u:'11,95 €/kg'},
+    ]},
+    // ── POISSONS ──
+    {sec:'🐟 Poissons & Fruits de mer',items:[
+      {code:'7238',promo:false,n:'8 Coquilles Saint-Jacques à la bretonne ⭐ PHARE',d:'880 g · 8 coquilles · 60% noix · Morbihan · crème fraîche, vin blanc, cognac, champignons',p:'45,10 €',u:'51,25 €/kg',star:true},
+      {code:'0025',promo:false,n:'Dos de cabillaud',d:'600 g · 5 à 8 pièces · Atlantique Nord-Est · surgelé en mer · MSC · sans peau · sans arête',p:'27,05 €',u:'45,08 €/kg'},
+      {code:'0032',promo:false,n:'Filets de cabillaud',d:'800 g · 4 à 8 pièces · Atlantique · surgelé en mer · MSC · sans peau',p:'32,95 €',u:'41,19 €/kg'},
+      {code:'0053',promo:false,n:'Filets de dorade sébaste',d:'600 g · 5 à 7 pièces · Atlantique Nord-Est · Mer de Barents, Norvège · sans peau',p:'18,95 €',u:'31,58 €/kg'},
+      {code:'0059',promo:false,n:'Portions de lieu noir',d:'800 g · 7 à 10 pièces · Atlantique · sans peau · qualité sans arête',p:'18,95 €',u:'23,69 €/kg'},
+      {code:'0067',promo:false,n:'Cœurs de filet de merlu blanc du Cap',d:'1 kg · 9 à 10 pièces · Atlantique sud-est · emballage individuel · sans peau',p:'25,95 €',u:'25,95 €/kg'},
+      {code:'0073',promo:false,n:'10 Tranches nature filets de colin d\'Alaska',d:'1 kg · MSC · pêché aux chaluts Pacifique · qualité sans arête',p:'19,95 €',u:'19,95 €/kg'},
+      {code:'0141',promo:false,n:'Ailes de raie',d:'1 kg · 2 à 5 pièces · Pacifique · sans peau',p:'23,45 €',u:'23,45 €/kg'},
+      {code:'0178',promo:false,n:'4 Steaks de thon germon',d:'500 g · pêché aux lignes et hameçons Pacifique · sans peau · pêche française',p:'17,95 €',u:'35,90 €/kg'},
+      {code:'0191',promo:true,n:'Saumonette tronçonnée',d:'1 kg · 7 à 10 pièces · Atlantique Nord-Ouest · pêché aux lignes et hameçons · MSC · sans peau',p:'16,50 €',u:'16,50 €/kg'},
+      {code:'0042',promo:false,n:'4 Pavés de saumon rose du Pacifique',d:'400 g · pêché aux filets maillants · sans peau · sous vide',p:'12,95 €',u:'32,38 €/kg'},
+      {code:'0158',promo:true,n:'Trio de poissons nordiques',d:'500 g · cabillaud et colin lieu + saumon · sans peau · qualité sans arête',p:'18,35 €',u:'36,70 €/kg'},
+      {code:'0251',promo:false,n:'16 à 32 Petites seiches entières',d:'800 g · sauvages · Océan Indien · nettoyées et parées · sans bec',p:'19,95 €',u:'24,94 €/kg'},
+      {code:'0147',promo:false,n:'Crevettes Black Tiger entières crues',d:'400 g · 14 à 20 pièces · élevées en Inde · chair ferme',p:'9,95 €',u:'24,88 €/kg'},
+      {code:'0154',promo:true,n:'Cocktail de fruits de mer précuits',d:'500 g · moules, calmars, crevettes · Rhône · sans colorant artificiel',p:'8,40 €',u:'16,80 €/kg'},
+      {code:'0177',promo:false,n:'4 à 5 Truites entières',d:'1 kg · élevées en Bretagne · arc-en-ciel · chair rose · totalement éviscérées',p:'23,95 €',u:'23,95 €/kg'},
+      {code:'0508',promo:false,n:'4 Coquilles de colin d\'Alaska et noix de St-Jacques',d:'480 g · morceaux filet, noix St-Jacques, crevettes, moules, crème, champignons',p:'15,95 €',u:'33,23 €/kg'},
+    ]},
+    // ── POISSONS PANÉS ──
+    {sec:'🐟 Poissons panés & cuisinés',items:[
+      {code:'0126',promo:false,n:'4 à 6 Filets de merlu blanc du Cap meunière',d:'500 g · préfrits · merlu blanc du Cap, huiles végétales, farine, citron, lait, persil',p:'13,60 €',u:'27,20 €/kg'},
+      {code:'0121',promo:true,n:'20 Portions panées filet de colin d\'Alaska',d:'1 kg · préfrites · croustillantes à l\'extérieur · sans arôme',p:'17,95 €',u:'17,95 €/kg'},
+      {code:'0128',promo:true,n:'4 Filets de colin d\'Alaska façon fish & chips',d:'500 g · 3 à 5 pièces · préfrits · sans arôme',p:'11,65 €',u:'23,30 €/kg'},
+      {code:'1546',promo:true,n:'4 Cordons bleus de saumon sauvage NOUVEAU',d:'460 g · préfrits · saumon rose du Pacifique, emmental, farine de blé',p:'13,95 €',u:'30,33 €/kg'},
+      {code:'1548',promo:false,n:'10 Cordons bleus cuits de poulet',d:'1 kg · poulet, jambon de dinde, fromage fondu · Loire-Atlantique',p:'14,65 €',u:'14,65 €/kg'},
+    ]},
+    // ── VIANDES ──
+    {sec:'🥩 Viandes',items:[
+      {code:'0623',promo:false,n:'4 Steaks hachés ronds façon bouchère',d:'500 g · pur bœuf 15% MG · Finistère · écrasés à la main, juteux · emballage individuel',p:'12,95 €',u:'25,90 €/kg'},
+      {code:'0601',promo:false,n:'6 Steaks hachés charolais façon bouchère',d:'750 g · 15% MG · bœuf charolais',p:'21,95 €',u:'29,27 €/kg'},
+      {code:'0618',promo:false,n:'6 Steaks hachés façon bouchère 5% MG',d:'720 g · emballage individuel',p:'21,25 €',u:'29,51 €/kg'},
+      {code:'0644',promo:false,n:'2 Entrecôtes maturées 10 jours',d:'220 g environ · sous vide · NOUVEAU',p:'44,95 €',u:'le kg'},
+      {code:'0648',promo:false,n:'2 Faux-filets maturation 12 jours',d:'180 g environ · sous vide · NOUVEAU',p:'42,95 €',u:'le kg'},
+      {code:'0612',promo:false,n:'2 Bavettes aloyau',d:'160 g environ · dégraissées et dénervées · NOUVEAU',p:'43,65 €',u:'le kg'},
+      {code:'0634',promo:false,n:'Joue de bœuf en sauté',d:'500 g environ · contre-joue · sous vide',p:'22,45 €',u:'le kg'},
+      {code:'0637',promo:false,n:'2 Noix de joue de bœuf entière',d:'1 kg environ · 2 pièces sous vide · à mijoter',p:'29,95 €',u:'le kg'},
+      {code:'0656',promo:false,n:'Jarret de veau tranché pour osso buco',d:'1 kg · 5 tranches avec os · sous vide',p:'26,95 €',u:'26,95 €/kg'},
+      {code:'0659',promo:false,n:'Viande de veau pour blanquette',d:'1 kg · 6 parts · sans os · collier et épaule dégraissés · morceaux 70-90g',p:'31,45 €',u:'31,45 €/kg'},
+      {code:'0627',promo:false,n:'Assortiment bœuf bourguignon',d:'1 kg · 4/6 parts · épaule et collier · coupé main en pièces 60-80g',p:'22,95 €',u:'22,95 €/kg'},
+      {code:'0701',promo:true,n:'Épaule de porc sauce BBQ',d:'1 kg · 6/7 parts · Vendée · épaule saumurée · sans colorant · sans huile de palme',p:'15,95 €',u:'15,95 €/kg'},
+      {code:'0719',promo:false,n:'Rôti de porc échine',d:'1 kg · sous vide · 5/7 parts',p:'14,75 €',u:'14,75 €/kg'},
+      {code:'0718',promo:true,n:'6 Côtes de porc 1re et filet',d:'1 kg · issues de carrés et filets · à cuire au gril ou à la poêle',p:'10,75 €',u:'10,75 €/kg'},
+      {code:'0710',promo:false,n:'Filet mignon de porc',d:'500 g environ · sous vide',p:'24,80 €',u:'le kg'},
+      {code:'2049',promo:false,n:'4 Cervelles d\'agneau',d:'360 g environ · à mijoter',p:'29,95 €',u:'le kg'},
+      {code:'0727',promo:false,n:'Gigot d\'agneau de lait',d:'800 g environ · avec os · sous vide · à rôtir',p:'19,95 €',u:'24,94 €/kg'},
+    ]},
+    // ── CHARCUTERIE ──
+    {sec:'🥓 Charcuterie',items:[
+      {code:'1051',promo:false,n:'8 Saucisses traditionnelles de Bretagne',d:'1 kg · 8×125g · pur porc qualité sup. · boyau naturel · sans conservateur',p:'16,95 €',u:'16,95 €/kg'},
+      {code:'1061',promo:true,n:'20 Chipolatas traditionnelles de Bretagne',d:'1 kg · 20×50g · pur porc qualité sup. · boyau naturel',p:'16,85 €',u:'16,85 €/kg'},
+      {code:'8535',promo:false,n:'Saucisse sèche supérieure',d:'220 g · viande et gras de porc, sel, lactose, épices, boyau naturel',p:'7,15 €',u:'32,50 €/kg'},
+      {code:'8536',promo:false,n:'Saucisson sec supérieur',d:'220 g · viande et gras de porc, sel, lactose, poivre, épices',p:'7,15 €',u:'32,50 €/kg'},
+    ]},
+    // ── VOLAILLES ──
+    {sec:'🍗 Volailles',items:[
+      {code:'1702',promo:true,n:'Cuisses de poulet françaises -20%',d:'1,5 kg · 5 à 7 pièces · Classe A · Origine France',p:'11,15 €',u:'7,43 €/kg'},
+      {code:'1223',promo:true,n:'Petit poulet jaune',d:'650 g environ · Classe A · prêt à cuire · à rôtir 45 min',p:'12,55 €',u:'12,55 €/kg'},
+      {code:'1716',promo:false,n:'8 à 10 Escalopes de dinde certifiées',d:'1 kg · alimentation 100% végétale, minérale et vitaminique · volaille française',p:'24,95 €',u:'24,95 €/kg'},
+      {code:'1506',promo:false,n:'Sot-l\'y-laisse de dinde',d:'1 kg · morceau le plus fin de la dinde · délicieux en blanquette',p:'19,95 €',u:'19,95 €/kg'},
+      {code:'1725',promo:false,n:'22 Aiguillettes de poulet',d:'1 kg · Classe A · calibre 30/60g',p:'17,95 €',u:'17,95 €/kg'},
+      {code:'1277',promo:false,n:'4 Cailles',d:'680 g · 160-170g pièce · prêtes à cuire · sans abats · sans tête',p:'13,95 €',u:'20,51 €/kg'},
+      {code:'1513',promo:false,n:'Filet fondant de dinde',d:'550 g · 4/6 parts · Morbihan · avec peau · mariné au beurre · sous vide · prêt à cuire',p:'15,95 €',u:'29,00 €/kg'},
+      {code:'1221',promo:false,n:'Poulet grillé à la portugaise sauce citron',d:'740 g · 3/4 parts · ouvert en deux · huile de tournesol, vin, vinaigre, jus d\'orange',p:'16,95 €',u:'22,91 €/kg'},
+    ]},
+    // ── LÉGUMES ──
+    {sec:'🥦 Légumes & Accompagnements',items:[
+      {code:'3068',promo:true,n:'Ratatouille cuisinée',d:'750 g · Morbihan · tomates, aubergines, courgettes, poivrons, huile d\'olive vierge extra',p:'5,50 €',u:'7,33 €/kg'},
+      {code:'3071',promo:false,n:'Printanière de légumes',d:'1 kg · pommes de terre grenaille, petits pois, carottes, haricots mange-tout, oignons',p:'4,15 €',u:'4,15 €/kg'},
+      {code:'3082',promo:false,n:'Mélange de légumes couscous',d:'1 kg · carottes, navets, céleri, courgettes, poivron, pois chiches',p:'3,95 €',u:'3,95 €/kg'},
+      {code:'3001',promo:false,n:'Haricots verts extra-fins',d:'1 kg · sans arôme',p:'4,75 €',u:'4,75 €/kg'},
+      {code:'2930',promo:true,n:'Haricots verts très fins BIO',d:'600 g · Agriculture UE',p:'5,40 €',u:'9,00 €/kg'},
+      {code:'2921',promo:true,n:'Brocolis en fleurettes BIO',d:'600 g · Agriculture UE',p:'4,80 €',u:'8,00 €/kg'},
+      {code:'3004',promo:false,n:'Brocolis en fleurettes',d:'1 kg',p:'5,95 €',u:'5,95 €/kg'},
+      {code:'4127',promo:false,n:'Purée de brocolis',d:'1 kg · 100% brocolis',p:'6,00 €',u:'6,00 €/kg'},
+      {code:'4126',promo:false,n:'Purée de carottes',d:'1 kg · 100% carottes',p:'6,00 €',u:'6,00 €/kg'},
+      {code:'4129',promo:true,n:'Frites coupe classique',d:'1 kg · préfrites · pommes de terre, huile de tournesol · sans conservateur',p:'3,35 €',u:'3,35 €/kg'},
+      {code:'4116',promo:false,n:'Frites au four',d:'2,5 kg · cuisson four',p:'9,95 €',u:'3,98 €/kg'},
+      {code:'3067',promo:false,n:'Poêlée pâtes, courgettes et aubergines',d:'900 g · 4/5 parts · pâtes, courgettes grillées, aubergines, tomates cerises',p:'8,50 €',u:'9,44 €/kg'},
+      {code:'3040',promo:true,n:'Gratin d\'aubergines',d:'450 g · Ille-et-Vilaine · aubergines, coulis de tomates, emmental, tomates, basilic, crème',p:'5,30 €',u:'11,78 €/kg'},
+      {code:'2928',promo:true,n:'Petits pois doux BIO',d:'600 g · Agriculture UE',p:'5,10 €',u:'8,50 €/kg'},
+      {code:'2931',promo:true,n:'Mélange wok BIO',d:'600 g · Agriculture UE/non UE · sans colorant',p:'4,85 €',u:'8,08 €/kg'},
+    ]},
+    // ── GLACES ──
+    {sec:'🍦 Glaces & Desserts glacés',items:[
+      {code:'6148',promo:true,n:'Bac artisanal Antolin — Caramel beurre salé',d:'600 g · Béziers depuis 1916 · Maître Artisan Glacier · Patrimoine Vivant · sans huile de palme',p:'7,80 €',u:'13,00 €/kg'},
+      {code:'6168',promo:true,n:'Bac artisanal Antolin — Café moka',d:'600 g · au café d\'Éthiopie',p:'7,80 €',u:'13,00 €/kg'},
+      {code:'6177',promo:true,n:'Bac artisanal Antolin — Chocolat craquant',d:'600 g · avec chocolat de Madagascar',p:'7,80 €',u:'13,00 €/kg'},
+      {code:'6167',promo:true,n:'Bac artisanal Antolin — Pistache',d:'600 g · avec morceaux de pistache',p:'7,80 €',u:'13,00 €/kg'},
+      {code:'6141',promo:true,n:'Bac artisanal Antolin — Saveur crème brûlée',d:'600 g · au lait des Pyrénées',p:'7,80 €',u:'13,00 €/kg'},
+      {code:'6139',promo:true,n:'Bac artisanal Antolin — Vanille tradition',d:'600 g · vanille bourbon de Madagascar',p:'7,80 €',u:'13,00 €/kg'},
+      {code:'6158',promo:true,n:'Sorbet Antolin — Cassis',d:'600 g · avec morceaux 52% de purée de fruits',p:'7,80 €',u:'13,00 €/kg'},
+      {code:'5257',promo:false,n:'6 Mini bâtonnets vanille chocolat au lait',d:'300 g · glace vanille, enrobage chocolat au lait · sans conservateur',p:'6,95 €',u:'23,17 €/kg'},
+      {code:'5222',promo:false,n:'4 Maxi bâtonnets café enrobage chocolat lait',d:'287 g · glace café, enrobage chocolat au lait',p:'6,95 €',u:'24,22 €/kg'},
+      {code:'5220',promo:false,n:'4 Maxi bâtonnets chocolat enrobage amandes',d:'346 g · glace chocolat, enrobage avec amandes hachées',p:'6,95 €',u:'20,09 €/kg'},
+      {code:'5321',promo:false,n:'4 Coupes café liégeois',d:'277 g · glace café, pépites chocolat, sauce café, nougatine',p:'4,50 €',u:'16,25 €/kg'},
+      {code:'5322',promo:false,n:'4 Coupes chocolat liégeois',d:'277 g · glace chocolat, pépites, sauce chocolat, nougatine',p:'4,50 €',u:'16,25 €/kg'},
+      {code:'8041',promo:false,n:'Feuilleté caramel 6 parts',d:'356 g · glace caramel aromatisée, glace vanille, pâte à glacer brisure de caramel',p:'5,95 €',u:'16,71 €/kg'},
+    ]},
+    // ── PÂTISSERIES ──
+    {sec:'🍰 Pâtisseries & desserts',items:[
+      {code:'4444',promo:true,n:'Tiramisu NOUVEAU',d:'450 g · 4/6 parts · Ille-et-Vilaine · biscuit cuillère sirop café, mousse mascarpone, cacao · sans colorant',p:'18,45 €',u:'41,00 €/kg'},
+      {code:'4438',promo:true,n:'Brioche tropézienne -15%',d:'500 g · 6/8 parts · Côte-d\'Or · crème pâtissière, eau de fleur d\'oranger',p:'11,00 €',u:'22,00 €/kg'},
+      {code:'4451',promo:true,n:'Gâteau basque à la crème (amande) -15%',d:'650 g · 6/8 parts · Landes · pâte sablée pur beurre, crème pâtissière',p:'13,95 €',u:'21,46 €/kg'},
+      {code:'4452',promo:true,n:'Gâteau basque à la confiture de cerises noires -15%',d:'650 g · 6/8 parts · Landes · pâte sablée pur beurre',p:'13,55 €',u:'20,85 €/kg'},
+      {code:'4442',promo:false,n:'Tarte aux pommes prédécoupée',d:'1 kg · 8 parts · pâte sablée, compote de pommes',p:'15,95 €',u:'15,95 €/kg'},
+      {code:'4437',promo:false,n:'Tarte aux fraises prédécoupée',d:'900 g · 8 parts · demi-fraises, pâte sablée, crème frangipane, compotée fraise',p:'21,60 €',u:'24,00 €/kg'},
+      {code:'4335',promo:false,n:'10 Croissants pur beurre',d:'550 g · farine de blé, beurre, levure, œufs, sel',p:'8,00 €',u:'14,55 €/kg'},
+      {code:'4336',promo:false,n:'10 Pains au chocolat pur beurre',d:'600 g · farine de blé, beurre, levure, chocolat, œufs, sel',p:'9,00 €',u:'15,00 €/kg'},
+      {code:'4367',promo:false,n:'4 Millefeuilles',d:'480 g · feuilletage au beurre, crème pâtissière, nappage fondant blanc et cacao',p:'14,95 €',u:'31,15 €/kg'},
+      {code:'4354',promo:false,n:'12 Macarons',d:'192 g · citron, chocolat noir, framboise, pistache, café, vanille',p:'13,45 €',u:'70,05 €/kg'},
+    ]},
+    // ── ÉPICERIE & BOISSONS ══
+    {sec:'🛒 Épicerie, boissons & hygiène',items:[
+      {code:'6900',promo:false,n:'Eau de source Cristaline 6×1,5L',d:'Vendu en 6×1,5 litres · 0,33 €/litre',p:'2,95 €',u:'0,33 €/l'},
+      {code:'7010',promo:false,n:'Lait de montagne UHT demi-écrémé 6×1L',d:'Pack de 6 litres · 1,55 €/litre',p:'9,30 €',u:'1,55 €/l'},
+      {code:'6905',promo:false,n:'Pur jus d\'orange Argel',d:'1 litre',p:'4,95 €',u:'4,95 €/l'},
+      {code:'0782',promo:true,n:'Grain bio rosé IGP Méditerranée',d:'0,75 l · Grenache, Cinsault · 13,5% vol.',p:'7,80 €',u:'10,40 €/l'},
+      {code:'0781',promo:false,n:'Grain bio rouge IGP Méditerranée',d:'0,75 l · Caladoc, Merlot · 14,5% vol.',p:'7,80 €',u:'10,40 €/l'},
+      {code:'8624',promo:false,n:'Café pur arabica supérieur',d:'250 g · café moulu, différents arabicas, meilleures origines',p:'6,95 €',u:'27,80 €/kg'},
+      {code:'6893',promo:false,n:'Essuie-tout 2 plis',d:'Lot de 2 rouleaux · 100% recyclés · Origine France',p:'6,95 €',u:'—'},
+      {code:'6896',promo:false,n:'Papier de toilette',d:'Lot de 6 rouleaux',p:'6,50 €',u:'—'},
+      {code:'0966',promo:false,n:'Liquide vaisselle parfum 100% huiles essentielles',d:'1 litre',p:'6,55 €',u:'—'},
+      {code:'0968',promo:false,n:'Assouplissant concentré tous textiles',d:'1,5 litre',p:'7,90 €',u:'5,27 €/l'},
+    ]},
+    // ── ANIMAUX ──
+    {sec:'🐾 Aliments chats & chiens',items:[
+      {code:'7050',promo:false,n:'Croquettes chat Prestige Adulte Multicroquettes',d:'2 kg · sans OGM, sans colorant',p:'22,95 €',u:'11,48 €/kg'},
+      {code:'7051',promo:false,n:'Croquettes chat Prestige stérilisé poulet',d:'2 kg · sans OGM',p:'27,95 €',u:'13,98 €/kg'},
+      {code:'7054',promo:false,n:'Croquettes chien Prestige adulte medium',d:'3 kg · sans OGM',p:'27,95 €',u:'9,32 €/kg'},
+      {code:'7058',promo:false,n:'Croquettes chien Prestige adulte 7+',d:'3 kg · chiens moyens',p:'29,95 €',u:'9,99 €/kg'},
+    ]},
+  ];
+}
+
+function camcData(){
+  return {
+    '7238':{c:'8 coquilles Saint-Jacques (code 7238), 880 g. 60% de vraies noix, crème fraîche, vin blanc, cognac, champignons, échalotes. Morbihan. Sans colorant, sans arôme. Four 25 min.',a:'Plat gastronomique en 25 min · 60% vraies noix · exclusivité Argel · parfait pour recevoir sans stress · toujours dispo au congélo.',m:'« Imaginez : vous sortez les coquilles du four, le gratin qui dore, la sauce crémeuse qui sent le cognac et le beurre… Vos invités pensent que vous avez cuisiné toute la matinée. Et vous avez juste sorti le sachet du congélo. »',conc:['« Je vous ajoute les coquilles ? »','« C\'est le genre de plat qu\'on est toujours content d\'avoir en réserve — je vous les note ? »']},
+    '1702':{c:'Cuisses de poulet françaises (code 1702), 1,5 kg, 5 à 7 pièces. Classe A. 100% France. Prix normal 13,95 €, ce mois-ci 11,15 € soit -20%, économie de 2,80 €.',a:'2,80 € d\'économie immédiate · volaille française traçée · ultra-polyvalente : four, plancha, cocotte · format familial pour plusieurs repas.',m:'« Des cuisses au four avec des herbes de Provence, la peau qui croustille et dore, le jus qui caramélise… Avec la ratatouille en promo ce mois-ci, vous avez un vrai repas du dimanche pour moins de 17 euros. »',conc:['« Je vous en mets un sachet de côté ? »','« C\'est le bon moment pour en profiter — je vous les note ? »']},
+    '3068':{c:'Ratatouille cuisinée (code 3068), 750 g. Morbihan. Tomates, aubergines, courgettes, poivrons, huile d\'olive vierge extra. Sans colorant, sans conservateur, sans arôme. Prête en 8-10 min.',a:'Accompagnement complet tout prêt · 100% légumes naturels · huile d\'olive vierge extra · prête en 8 min · compatible poisson, viande et volaille.',m:'« L\'odeur des poivrons et des tomates confites qui se répand dans la cuisine… c\'est le soleil provençal dans l\'assiette. 8 minutes sur le feu, et c\'est prêt. Avec les cuisses de poulet en promo, c\'est un vrai repas méditerranéen. »',conc:['« Je vous l\'ajoute avec le poulet ? »','« C\'est tout de suite un repas complet — je vous la note ? »']},
+    '0307':{c:'Pizza bolognaise (code 0307), 450 g. Drôme, cuite au feu de bois. Sauce tomate, bœuf français, Maasdam, olives noires. Sans colorant artificiel. Four 12-15 min.',a:'Feu de bois = pâte croustillante et légèrement fumée · bœuf français certifié · prête en 12 min · excellent rapport qualité-prix.',m:'« Imaginez la sortir du four bien dorée, la pâte qui craque sous le couteau, l\'odeur de la sauce tomate et du fromage fondu… C\'est la pizza du vendredi soir sans avoir à sortir. »',conc:['« Je vous en mets une de côté ? »','« C\'est pratique d\'en avoir toujours une au congélo — je vous la note ? »']},
+    '0025':{c:'Dos de cabillaud (code 0025), 600 g, 5 à 8 pièces. Atlantique Nord-Est. Surgelé en mer dans les 12h. Certifié MSC. Sans peau, sans arête.',a:'Surgelé en mer = plus frais qu\'un poisson de marché (4-5j sur étal vs 12h ici) · sans arête = zéro stress · cuit en 5-7 min · maigre et riche en protéines.',m:'« Un dos de cabillaud à la poêle avec un filet de beurre noisette, quelques câpres, un peu de citron… La chair qui s\'effeuille, blanche et délicate, qui fond en bouche. Prêt en 10 minutes, comme dans un bon restaurant. »',conc:['« Je vous l\'ajoute ? »','« Avec une poêlée de légumes vous avez un repas complet — je vous le note ? »']},
+    '0191':{c:'Saumonette tronçonnée (code 0191), 1 kg, 7 à 10 pièces. Atlantique Nord-Ouest, pêchée aux lignes. Sans peau. Certifiée MSC.',a:'Prix très accessible · chair ferme qui se tient à la cuisson · saveur douce, pas trop iodée · certifiée pêche durable.',m:'« Une saumonette poêlée avec une sauce tomate ou à la moutarde — la chair est ferme, elle tient bien. Un poisson simple et gourmand qui fait son effet sans se ruiner. »',conc:['« Je vous en mets un sachet ? »','« Très bon rapport qualité-prix — je vous la note ? »']},
+    '0623':{c:'4 steaks hachés ronds façon bouchère (code 0623), 500 g. 100% pur bœuf, 15% MG. Finistère. Écrasés à la main, juteux. Emballage individuel.',a:'Goût bouchère authentique · emballage individuel = zéro gaspillage · cuit en 10 min · juteux et savoureux · pur bœuf français.',m:'« Un steak haché façon bouchère dans une poêle bien chaude avec un peu de beurre. La croûte qui se forme des deux côtés, le jus qui reste à l\'intérieur… Avec des frites ou une bonne purée, c\'est le repas qui régale tout le monde. »',conc:['« Je vous en mets un sachet ? »','« C\'est le genre de chose qu\'on est content d\'avoir au congélo — je vous les note ? »']},
+    '1716':{c:'Escalopes de dinde certifiées (code 1716), 1 kg, 8 à 10 pièces. Volaille française. Alimentation 100% végétale, minérale et vitaminique certifiée. Poêle 8-9 min.',a:'Viande blanche maigre et tendre · 8 à 10 pièces = plusieurs repas · alimentation végétale certifiée · très rapide à préparer.',m:'« Des escalopes de dinde dorées à la poêle avec une sauce à la crème et des champignons, ou simplement citron et câpres… La viande est tendre, légère, elle prend tous les parfums. »',conc:['« Je vous en mets un sachet ? »','« Avec 8 à 10 pièces vous avez de quoi tenir la semaine — je vous les note ? »']},
+    '6148':{c:'Bacs artisanaux Antolin, 600 g. Béziers depuis 1916. Maître Artisan Glacier, Entreprise du Patrimoine Vivant. Sans colorant, sans huile de palme. 9 parfums.',a:'Qualité artisanale rare · recettes transmises depuis 100 ans · moins d\'air que les glaces industrielles = plus de goût · 9 parfums gourmands.',m:'« Imaginez sortir un bac de caramel beurre salé Antolin après votre tarte du dimanche — la glace qui fond doucement sur le chaud, le caramel légèrement salé qui contraste avec le sucré… C\'est le dessert qui fait l\'effet d\'un restaurant. »',conc:['« Vous prenez quel parfum ? »','« Je vous en mets un — caramel beurre salé, pistache, vanille ? »']},
+    '0410':{c:'Tagliatelles au saumon (code 0410), 300 g, 1 part. Calvados. Sauce crémeuse et dés de saumon. Sans arôme artificiel, sans colorant. Four 20-25 min ou micro-ondes 5-6 min.',a:'Repas complet en une barquette · saumon et sauce crémeuse · 5 min au micro-ondes · parfait déjeuner rapide ou dîner solo · sans additifs.',m:'« Vous rentrez le soir, pas envie de cuisiner — 5 minutes au micro-ondes et vous avez un vrai plat de restaurant dans votre assiette. La sauce crémeuse, les morceaux de saumon fondants… »',conc:['« Je vous en mets quelques barquettes ? »','« Pratique d\'en avoir toujours — je vous les note ? »']},
+    '4444':{c:'Tiramisu (code 4444), 450 g, 4 à 6 parts. Nouveau. Ille-et-Vilaine. Biscuit cuillère imbibé sirop de café, mousse mascarpone, cacao. Sans colorant, sans arôme, sans conservateur. 12h au réfrigérateur.',a:'Nouveau produit exclusif · dessert gastronomique prêt à sortir · texture ultra-crémeuse · 4 à 6 parts pour recevoir · aucune préparation · sans additifs.',m:'« Imaginez recevoir des amis et sortir un vrai tiramisu comme dans un restaurant italien — le mascarpone soyeux, le café qui imprègne le biscuit, le cacao amer sur le dessus… Vos invités vont vous demander la recette. »',conc:['« Je vous en mets une boîte ? »','« C\'est le dessert qui impressionne sans effort — on le rajoute ? »']},
+    '4129':{c:'Frites coupe classique (code 4129), 1 kg. Préfrites. Pommes de terre, huile de tournesol. Sans conservateur, sans colorant. Cuisson 3-4 min.',a:'Accompagnement parfait pour poisson pané et steaks · cuisson ultra-rapide · prix très accessible · sans additifs.',m:'« Avec le poisson pané ou le steak haché, des bonnes frites croustillantes… c\'est LE classique qui fait toujours plaisir à tout le monde. »',conc:['« Je vous en mets un sachet avec ? »','« Logique avec le poisson — je vous les ajoute ? »']},
+  };
+}
+
+function renderProd(p, clickable){
+  const hasCamc = !!camcData()[p.code];
+  const bdg = p.star?'<span class="bdg bdg-s">⭐ PHARE</span>':p.promo?'<span class="bdg bdg-p">PROMO</span>':'';
+  const on = (clickable&&hasCamc)?`onclick="openCAMC('${p.code}')"` :'';
+  const cl = (clickable&&hasCamc)?' cl':'';
+  return `<div class="prod${cl}" ${on}>${bdg}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="pn">${p.n}</div>
+      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0;margin-left:8px">Code ${p.code}</div>
+    </div>
+    <div class="pd">${p.d}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+      <div class="pp">${p.p}</div>
+      ${(clickable&&hasCamc)?'<div style="font-size:11px;color:var(--accent);font-weight:600">CAMC →</div>':''}
+    </div>
+  </div>`;
+}
+
+function buildProd(){
+  const cats = getCat();
+  const seen=new Set(), res=[];
+  const add=p=>{if(!seen.has(p.code)){seen.add(p.code);res.push(p);}};
+  // promos
+  for(const s of cats) s.items.filter(p=>p.promo).forEach(add);
+  // star
+  for(const s of cats) s.items.filter(p=>p.star).forEach(add);
+  // by cat selected
+  const catSecMap={poisson:'🐟 Poissons',viande:'🥩 Viandes',volaille:'🍗 Volailles',legumes:'🥦 Légumes',plats:'🍝 Plats cuisinés',glaces:'🍦 Glaces',pizza:'🍕 Pizzas',epicerie:'🛒 Épicerie',aperitif:'🥂 Entrées'};
+  for(const[cat,sec] of Object.entries(catSecMap)){
+    if(S.cats.includes(cat)){
+      const s=cats.find(x=>x.sec.includes(sec.slice(2).split(' ')[0]));
+      if(s) s.items.filter(p=>!p.promo&&!p.star).slice(0,2).forEach(add);
+    }
+  }
+  document.getElementById('prodDiv').innerHTML=res.slice(0,12).map(p=>renderProd(p,true)).join('');
+}
+
+function buildCat(){
+  let h='';
+  for(const s of getCat()){
+    h+=`<div class="lbl" style="margin-top:16px">${s.sec}</div>`;
+    h+=s.items.map(p=>renderProd(p,true)).join('');
+  }
+  document.getElementById('catDiv').innerHTML=h;
+}
+
+function openCAMC(code){
+  const cd=camcData();
+  const d=cd[code];
+  const cat=getCat();
+  let prod=null;
+  for(const s of cat){const f=s.items.find(p=>p.code===code);if(f){prod=f;break;}}
+  if(!d||!prod) return;
+  const concs=Array.isArray(d.conc)?d.conc:[d.conc];
+  document.getElementById('mCAMCT').textContent=prod.n;
+  document.getElementById('mCAMCC').innerHTML=
+    `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:12px">Code ${prod.code} · ${prod.p} · ${prod.u}</div>
+    <div class="cb mb8"><div class="cl2">C — CARACTÉRISTIQUES</div><div class="ct">${d.c}</div></div>
+    <div class="cb mb8" style="border-color:var(--accent3);background:rgba(67,212,160,.07)"><div class="cl2" style="color:var(--accent3)">A — AVANTAGES</div><div class="ct">${d.a}</div></div>
+    <div class="cb mb8" style="border-color:var(--accent4);background:rgba(245,166,35,.07)"><div class="cl2" style="color:var(--accent4)">M — MISE EN SITUATION 🍽️</div><div class="ct" style="font-style:italic">${d.m}</div></div>
+    <div class="cb" style="border-color:var(--accent2);background:rgba(255,107,107,.07)"><div class="cl2" style="color:var(--accent2)">C — CONCLUSION 🎯</div>${concs.map(c=>`<div class="aq" style="margin-top:6px">${c}</div>`).join('')}</div>`;
+  openM('mCAMC');
+}
+
+// ══ TRAME ══
+function updateTrame(){
+  for(let i=0;i<4;i++){
+    const ts=document.getElementById('ts'+i),tc=document.getElementById('tc'+i);
+    if(!ts||!tc) continue;
+    ts.classList.remove('cur','done');
+    if(i<S.step) ts.classList.add('done');
+    if(i===S.step) ts.classList.add('cur');
+    tc.style.display=i===S.step?'block':'none';
+  }
+  const nb=document.getElementById('nxtBtn');
+  if(nb) nb.textContent=S.step<3?'Étape suivante →':'✅ Clôturer';
+}
+function nextS(){if(S.step<3){S.step++;updateTrame();window.scrollTo(0,0);}else goS(3);}
+function prevS(){if(S.step>0){S.step--;updateTrame();window.scrollTo(0,0);}else goS(0);}
+
+// ══ OBJECTIONS ══
+const OBJ={
+  cher:{t:'💸 « C\'est trop cher »',a:['« Je vous comprends parfaitement, le budget c\'est important. »','« À votre place je penserais comme vous. »'],i:['« Par rapport à quoi trouvez-vous que c\'est cher ? »','« C\'est le prix unitaire ou le montant total qui vous inquiète ? »'],r:['Ramener au prix à la part — ex. cuisses de poulet ≈ 1,59 € la pièce','Mentionner les promos du mois','Rappeler la qualité : 90% français, sans additifs, élaboré par des chefs','« Nous ne sommes pas des discounters — nous vendons de la qualité. »','Proposer une petite commande test à 30-40 €']},
+  rien:{t:'🚫 « J\'ai besoin de rien »',a:['« Je vous comprends ! »','« Je vous rassure, je vous appelais juste pour faire le point — pas du tout pour vous forcer à quoi que ce soit. »'],i:['« Pourquoi me dites-vous n\'avoir besoin de rien ? »','« Vous avez fait le plein récemment ? »'],r:['Tout le monde mange tous les jours — impossible d\'avoir besoin de rien !','Ne pas sortir les promos d\'emblée','Poser une question ouverte : « Qu\'aimez-vous manger cette semaine ? »','Rebondir sur une occasion : saison, famille, événement']},
+  frais:{t:'🥬 « Je préfère les produits frais »',a:['« Je vous comprends, la fraîcheur c\'est primordial. »','« Vous avez tout à fait raison d\'y faire attention. »'],i:['« Vous êtes sensible à la fraîcheur des produits ? »','« Vous êtes plutôt viande ou poisson ? »'],r:['Notre poisson est congelé en mer dans les 12h après pêche → plus frais que l\'étal (4-5 jours sur étal)','Légumes surgelés = vitamines conservées à 100%','Moins d\'additifs que les produits frais emballés en grande surface','Labels MSC, Pavillon France, Label Rouge garantissent la qualité']},
+  seule:{t:'👤 « Je suis seule / on est deux »',a:['« Bien sûr, on pense à vous ! »','« Beaucoup de nos clients vivent seuls ou en couple. »'],i:['« C\'est important aussi de se faire plaisir quand on vit seul.e, non ? »','« Quand vous voulez vous faire plaisir, qu\'aimez-vous manger ? »'],r:['Large gamme adaptée aux petites portions','Produits portionnables : steaks individuels, plats 1 part en barquette','Glaces et pâtisseries individuelles · Plats cuisinés 1 portion micro-ondables']},
+  boucher:{t:'🥩 « J\'ai mon boucher »',a:['« C\'est une chance d\'avoir un bon boucher ! »','« On ne change pas les bonnes habitudes. »'],i:['« À part la viande, qu\'aimez-vous manger ? »'],r:['Des clients achètent leur viande ailleurs ET nos légumes, glaces, poissons','Nos produits exclusifs (St-Jacques, Antolin…) sont introuvables ailleurs','Gamme poisson, entrées, pâtisseries — rien à voir avec une boucherie']},
+  jardin:{t:'🌱 « J\'ai tout dans mon jardin »',a:['« C\'est formidable d\'avoir un potager ! »'],i:['« Qu\'aimez-vous cuisiner pour vous faire plaisir ? »','« En dehors de vos légumes, qu\'est-ce que vous mangez ? »'],r:['Nous proposons bien plus que des légumes','Poisson, viande, glaces, pâtisseries — exclusifs Argel','En hiver ou hors saison, votre jardin ne produit plus']},
+  fournisseur:{t:'🔄 « J\'ai déjà un fournisseur »',a:['« Ah oui ! Ça ne m\'étonne pas, vous avez l\'habitude de bien manger. »'],i:['« Qu\'est-ce que vous prenez de bon chez eux ? »','« Vous êtes plutôt viande ou poisson ? »'],r:['Certains clients comparent et commandent chez les deux','Nos produits exclusifs (St-Jacques, Antolin…) ne se trouvent pas ailleurs','Livraison à domicile + paiement à la livraison : un confort unique']},
+  absent:{t:'✈️ « Je pars / je ne suis pas là »',a:['« Ah vous avez un voyage de prévu, c\'est bien ! »'],i:['« Vous partez pour longtemps ? »','« Vous avez quelqu\'un à la maison pour réceptionner ? »'],r:['Possibilité de demander à un voisin de réceptionner','Commande planifiée sur la date de retour','Livraison résidence secondaire possible']},
+  congelateur:{t:'🧊 « Mon congélateur est plein »',a:['« Je vous comprends ! Un congélo plein c\'est rassurant. »'],i:['« Il est plein de quoi principalement ? »','« Vous avez fait le plein récemment ? »'],r:['Anticiper : on remplace au fur et à mesure ce qu\'on consomme','Proposer une petite commande pour remplacer ce qui va être mangé cette semaine','Produits non surgelés : conserves, boissons, épicerie — pas besoin de congélo']},
+  complique:{t:'😰 « C\'est compliqué comme système »',a:['« Je comprends, au début ça peut sembler compliqué. »','« Beaucoup de nos clients pensaient ça au départ ! »'],i:['« Qu\'est-ce qui vous paraît compliqué exactement ? »','« Quelles sont vos disponibilités pour la livraison ? »'],r:['Expliquer simplement : appel → commande → livraison → paiement à la livraison','Horaires de livraison adaptables','Livreur attitré = relation de confiance qui se construit']},
+  surgle:{t:'❄️ « Je n\'utilise plus trop les surgelés »',a:['« Je vous entends ! »','« Certains clients avaient des a priori au départ aussi. »'],i:['« Vous êtes attentive à la qualité des produits ? »'],r:['Surgélation = moins d\'additifs que les plats frais emballés','Vitamines et minéraux conservés à 100%','Produits élaborés par des chefs et Meilleurs Ouvriers de France','Poisson surgelé en mer = qualité supérieure au poisson de marché']},
+  catalogue:{t:'📖 « Je n\'ai pas vu le catalogue »',a:['« Pas de souci du tout ! »'],i:[],r:['Feuilleter le catalogue ensemble pendant l\'appel','Décrire les 2-3 produits en promotion du mois','Proposer d\'envoyer le catalogue par mail si disponible']},
+};
+function obj(key){
+  const d=OBJ[key]; if(!d) return;
+  document.getElementById('mObjT').textContent=d.t;
+  let h=`<div style="margin-bottom:12px"><div class="al al-a">A — ACCEPTER</div>${d.a.map(t=>`<div class="aq">${t}</div>`).join('')}</div>`;
+  if(d.i&&d.i.length) h+=`<div style="margin-bottom:12px"><div class="al al-i">I — INTERROGER</div>${d.i.map(t=>`<div class="aq">${t}</div>`).join('')}</div>`;
+  h+=`<div style="margin-bottom:12px"><div class="al al-r">R — RÉPONDRE</div>${d.r.map(t=>`<div class="prod" style="margin-bottom:6px"><div style="font-size:13px;line-height:1.6">${t}</div></div>`).join('')}</div>`;
+  document.getElementById('mObjC').innerHTML=h;
+  openM('mObj');
+}
+
+// ══ BDR MODE ══
+const BDRS=[
+  {num:0,lbl:'Étape 1 — Désarmer & accepter',
+   say:'<em>« Je vous comprends tout à fait. »</em>\n\nJe vous rassure, je vous appelais juste pour faire le point avec vous — pas du tout pour vous forcer à quoi que ce soit.',
+   q:'Comment réagit le client ?',
+   btns:[{l:'😌 Il se détend / s\'ouvre',c:'yes',n:1},{l:'😤 Reste fermé / froid',c:'no',n:'froid'},{l:'⏱️ Me coupe / très pressé',c:'meh',n:'presse'}]},
+  {num:1,lbl:'Étape 2 — Ouvrir la conversation',
+   say:'<em>« Vous savez, tout le monde mange tous les jours — y compris vous ! »</em>\n\nQu\'est-ce que vous avez prévu de cuisiner cette semaine ?',
+   q:'Sa réponse ?',
+   btns:[{l:'✅ Donne une info sur ses repas',c:'yes',n:2},{l:'🤷 Évasif / « je sais pas »',c:'meh',n:'evasif'},{l:'❌ Toujours négatif',c:'no',n:'negatif'}]},
+  {num:2,lbl:'Étape 3 — Identifier UN besoin précis',
+   say:'<em>« Vous êtes plutôt viande ou poisson en général ? »</em>\n\n→ Si viande : « Et vous le cuisinez comment, grillé ou mijoté ? »\n→ Si poisson : « Vous aimez ça poêlé simplement ou avec une petite sauce ? »',
+   q:'Tu as trouvé quelque chose ?',
+   btns:[{l:'✅ Oui ! Un goût identifié',c:'yes',n:3},{l:'🤔 Hésitant mais pas fermé',c:'meh',n:'hesitant'},{l:'❌ Vraiment rien à tirer',c:'no',n:'raccrocher'}]},
+  {num:3,lbl:'Étape 4 — UN seul produit, CAMC court',
+   say:'Choisis <strong>UN produit</strong> lié à ce qu\'il a dit.\n\n<em>« J\'ai quelque chose qui pourrait vraiment vous convenir — [produit]. [Mise en situation en 1 phrase]. Je vous l\'ajoute ? »</em>\n\n⚠️ UN SEUL produit. Pas de liste. Pas d\'options.',
+   q:'Sa réaction ?',
+   btns:[{l:'🎉 Il accepte !',c:'yes',n:'victoire'},{l:'🤔 Hésite encore',c:'meh',n:'hesitant2'},{l:'❌ Refuse fermement',c:'no',n:'raccrocher'}]},
+];
+const BDRR={
+  froid:{lbl:'Client fermé / froid',txt:'Ne pas insister sur la même approche. Changer complètement de registre :\n\n<strong>« Je comprends, et je ne veux pas vous déranger. Dites-moi juste une chose — vous aimez plutôt cuisiner ou vous préférez quelque chose de tout prêt ? »</strong>\n\nSi toujours rien → passer quand même à l\'étape 2.',next:1},
+  presse:{lbl:'Client pressé / qui coupe',txt:'Aller à l\'essentiel, immédiatement :\n\n<strong>« Je ne vous prends que 2 minutes, promis. Une seule question : vous êtes plutôt viande ou poisson ? »</strong>\n\nPasser directement à l\'étape 3.',next:3},
+  evasif:{lbl:'Client évasif',txt:'Relancer doucement mais directement :\n\n<strong>« C\'est difficile comme question ? Alors on va faire simple — viande ou poisson, lequel vous préférez ? »</strong>\n\nAttendre sa réponse, puis passer à l\'étape 3.',next:3},
+  negatif:{lbl:'Client toujours négatif',txt:'Règle des 3 non : si 2 non déjà encaissés, poser une question où "oui" est la seule réponse logique :\n\n<strong>« Vous mangez bien tous les jours, n\'est-ce pas ? »</strong>\n\nEnchaîner directement sur le besoin alimentaire en étape 3.',next:3},
+  hesitant:{lbl:'Client hésitant mais pas fermé',txt:'Bon signe ! Ne pas en rajouter, rester simple et direct :\n\n<strong>« Je vais vous proposer quelque chose de très simple, juste une chose. Vous aimez [ce qu\'il a mentionné] ? Alors j\'ai exactement ça. »</strong>\n\nPassez directement à l\'étape 4.',next:4},
+  hesitant2:{lbl:'Client qui hésite encore sur le produit',txt:'Ne proposez PAS un autre produit — ça saturerait et briserait le momentum.\n\nRelancer sur la mise en situation :\n<strong>« Imaginez juste [scène courte et concrète]… vous voyez ce que je veux dire ? »</strong>\n\nSi toujours hésitant → notons l\'intention pour le prochain appel.',next:'raccrocher'},
+  raccrocher:{lbl:'Fin de l\'appel — raccrocher avec classe',txt:'On n\'a pas vendu. C\'est OK. L\'objectif maintenant : <strong>garder le lien</strong>.\n\n<strong>« Pas de souci du tout ! Je vous rappellerai au prochain passage. En attendant, jetez un œil au catalogue — on a de belles choses en avril. Bonne journée ! »</strong>\n\n✏️ À noter dans la fiche client : BDR · raison · produit qui avait failli passer.',next:null},
+  victoire:{lbl:'🎉 Vendu ! Belle performance !',txt:'CAMC réussi en situation BDR — c\'est une vraie victoire !\n\nEnchaîner <strong>immédiatement</strong> sur la clôture :\n<strong>« Parfait ! Je vous note [produit]. Autre chose qui vous ferait plaisir cette semaine ? »</strong>\n\n⚠️ Maximum UN produit de plus — ne pas gâcher le moment.',next:null},
+};
+
+function openBDR(){
+  document.getElementById('bdrPanel').classList.add('open');
+  renderBDR(0);
+}
+function closeBDR(){
+  document.getElementById('bdrPanel').classList.remove('open');
+}
+function renderBDR(idx){
+  // update progress dots
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('bd'+i);
+    if(!d) continue;
+    d.classList.remove('act','dn');
+    const n=typeof idx==='number'?idx:4;
+    if(i<n) d.classList.add('dn');
+    else if(i===n) d.classList.add('act');
+  }
+  let h='';
+  if(typeof idx==='string'){
+    const r=BDRR[idx]; if(!r) return;
+    h=`<div class="bdr-lbl">${r.lbl}</div>
+      <div class="bdr-resp">${r.txt.replace(/\n\n/g,'</p><p style="margin-top:12px">').replace(/\n/g,'<br>')}</div>`;
+    if(r.next!==null){
+      const nv=typeof r.next==='number'?r.next:`'${r.next}'`;
+      h+=`<button class="btn btn-p" onclick="renderBDR(${nv})">Continuer →</button>`;
+    } else {
+      h+=`<button class="btn btn-ok" onclick="closeBDR()">Terminer l'appel ✅</button>`;
+    }
+  } else {
+    const s=BDRS[idx]; if(!s) return;
+    h=`<div class="bdr-lbl">${s.lbl}</div>
+      <div class="bdr-say">${s.say.replace(/\n/g,'<br>')}</div>
+      <div class="bdr-q">${s.q}</div>
+      <div class="bdr-btns">
+        ${s.btns.map(b=>{
+          const nv=typeof b.n==='number'?b.n:`'${b.n}'`;
+          return `<button class="bdr-btn ${b.c}" onclick="renderBDR(${nv})"><span class="bic">${b.c==='yes'?'✅':b.c==='no'?'❌':'🤔'}</span><span>${b.l}</span></button>`;
+        }).join('')}
+      </div>`;
+  }
+  document.getElementById('bdrBody').innerHTML=h;
+  document.getElementById('bdrPanel').scrollTop=0;
+}
+
+// ══ RESET ══
+function reset(){
+  S.type='nouveau'; S.cats=[]; S.persona='inconnu'; S.step=0; S.bdr=false;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on','bdr-on'));
+  document.querySelector('#typeChips .chip').classList.add('on');
+  document.querySelector('#perChips [data-v="inconnu"]').classList.add('on');
+  document.querySelectorAll('.ci').forEach(c=>c.classList.remove('done'));
+  closeBDR();
+  goS(0);
+}
+
+updateDots();
+</script>
+</body>
+</html>
